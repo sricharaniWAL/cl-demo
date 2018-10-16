@@ -73,17 +73,26 @@ ul li:last-child .newsWrapper {
 }
 #foo {
   display:inline-flex;
-   width:640px;
-   height:480px
+   width:100%;
+   height:100%
 }
 .newsWrapper button {
   background-color: #236683;
   border-color: #236683;
 }
-.nav-tabs .nav-link {
-  padding: 20px;
-  font-size: 18px;
+.modalBody {
+  max-width: 100% !important;
 }
+.mainContainer > ul > li {
+  width: 50%;
+}
+.mainContainer > ul > li > a {
+  padding: 1rem !important;
+  font-size: 18px !important;
+  border-radius: 0;
+  text-align: center;
+}
+
 .noContent {
   display: flex;
   justify-content: center;
@@ -91,4 +100,7 @@ ul li:last-child .newsWrapper {
   height: 300px;
   color: #fff !important;
   font-size: 1.5rem !important;
+}
+.newsUL {
+margin-top: 1rem;  
 }

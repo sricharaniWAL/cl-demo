@@ -11,7 +11,7 @@ import classnames from 'classnames';
 import { TabContent, TabPane, Nav, NavItem, NavLink, Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { NewsList } from '../models';
 import Banner from './Banner';
-
+ 
 export default class Home extends Component {
   constructor(Props) {
     super(Props);
@@ -23,6 +23,7 @@ export default class Home extends Component {
       headlines: [],
       startDate: moment(),
       searchKeywords: "",
+      clickedCountry : ""
     }
     this.toggle = this.toggle.bind(this);
     this.handleChangeDate = this.handleChangeDate.bind(this);
@@ -46,9 +47,10 @@ export default class Home extends Component {
     }
   }
 
-  toggleModal() {
+  toggleModal(index) {
     this.setState({
-      modal: !this.state.modal
+      modal: !this.state.modal,
+      clickedCountry : index
     });
   }
 
@@ -97,6 +99,10 @@ export default class Home extends Component {
   }
  
 
+  // insertForOffline(article){
+
+  // }
+
   getNews() {
 
     let keywords = this.state.searchKeywords
@@ -119,6 +125,8 @@ export default class Home extends Component {
     if (sortResult) {
         params['sortBy'] = sortResult
     } 
+
+
     axios.defaults.baseURL = 'https://newsapi.org/v2/everything';
     axios.defaults.headers.common['Authorization'] = 'e18bb330222541caab90fb31d7ed0547';
     axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -131,11 +139,23 @@ export default class Home extends Component {
       let data = res.data.articles.map((desc) => {
         let article={};
         article.author = desc.author;
-        article.source = desc.source['name'];
+        article.source_name = desc.source['name'];
+        article.source_id = desc.source['id'];
         article.title = desc.title;
-        article.imageURL = desc.urlToImage;
-        article.newsURL = desc.url;
-        article.createdDate = desc.publishedAt.split("T")[0];
+        article.image_url = desc.urlToImage;
+        article.news_url = desc.url;
+        article.created_date = desc.publishedAt.split("T")[0];
+        article.news_type = 'Regular-News'
+        NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
+          if(!d){
+            NewsList.create(article).then((createdData) => {
+     
+            })
+          }
+        })
+        // if(!news_list){
+        //   await NewsList.create(article)
+        // }
         return article;
       })
 
@@ -148,7 +168,20 @@ export default class Home extends Component {
     });
   }
 
-  getHeadlines() {
+  async getHeadlines() {
+    let headlines_data;
+    if(!navigator.onLine){
+      headlines_data = await NewsList.findAll({
+        attributes: ['author', 'source_name', 'image_url','title', 'news_url', 'created_date'],
+        where: {news_type: 'headlines'}
+      })
+      let formatted_data = headlines_data.map((data) => {
+        return data.dataValues
+      })
+      this.setState({
+        headlines: formatted_data
+      })
+    }
     axios.defaults.baseURL = 'https://newsapi.org/v2/top-headlines';
     axios.defaults.headers.common['Authorization'] = 'e18bb330222541caab90fb31d7ed0547';
     axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -163,16 +196,30 @@ export default class Home extends Component {
       let data = res.data.articles.map((desc) => {
         let article={};
         article.author = desc.author;
-        article.source = desc.source['name'];
+        article.source_name = desc.source['name'];
+        article.source_id = desc.source['id']
         article.title = desc.title;
-        article.imageURL = desc.urlToImage;
-        article.newsURL = desc.url;
-        article.createdDate = desc.publishedAt.split("T")[0];
+        article.image_url = desc.urlToImage;
+        article.news_url = desc.url;
+        article.created_date = desc.publishedAt.split("T")[0];
+        article.news_type = "headlines"
+        NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
+         if(!d){
+            NewsList.create(article).then((createdData) => {
+              console.log(createdData);
+            })
+         }
+        })
         return article;
       })
-
+      // NewsList.bulkCreate(data).then(function(){
+      //   console.log('bulk insert completed')
+      //   this.setState({
+      //     headlines: data
+      //   })
+      // });
       this.setState({
-        headlines: data
+             headlines: data
       })
 
     }).catch((err) => {
@@ -226,41 +273,52 @@ export default class Home extends Component {
         <TabContent activeTab={this.state.activeTab}>
           <TabPane tabId="1">
              
-              <ul>
-          {
-            this.state.headlines.map((country, index) => {
-                  return <li key={`country_${index}`}>
-                  <section className={styles.newsWrapper}>
-                      <div className={styles.headlinesContainer}>
-                            <div className={styles.leftNewsPanel}>
-                              <p>
-                                {country.title}
-                              </p>
-                              <p>
-                                <span>{country.author}</span> <span className={styles.seperator}>|</span>
-                                <span>{country.source}</span> <span className={styles.seperator}>|</span>
-                                <span>{country.createdDate}</span>
-                              </p>
+              <ul className={styles.newsUL}>
+               {
+                  this.state.headlines.map((country, index) => {
+                      return <li key={`country_${index}`}>
+                      <section className={styles.newsWrapper}>
+                          <div className={styles.headlinesContainer}>
+                                <div className={styles.leftNewsPanel}>
+                                  <p>
+                                    {country.title}
+                                  </p>
+                                  <p>
+                                    <span>{country.author}</span> 
+                                    {
+                                      country.author ? 
+                                      <span className={styles.seperator}>|</span>
+                                      : null
+                                    }
+
+                                    <span>{country.source_name}</span> 
+                                    {
+                                     country.source ?
+                                    <span className={styles.seperator}>|</span>
+                                     : null
+                                    }
+                                    <span>{country.created_date}</span>
+                                  </p>
+                                </div>
+                                <div className={styles.rightImagePanel}>
+                                  <img src={country.image_url} />
+                                </div>
                             </div>
-                            <div className={styles.rightImagePanel}>
-                              <img src={country.imageURL} />
-                            </div>
-                        </div>
-                      <Button onClick={this.toggleModal}>Read More</Button>
-                      <Modal isOpen={this.state.modal} toggle={this.toggleModal} className={this.props.className}>
-                        <ModalHeader toggle={this.toggleModal}>Modal title</ModalHeader>
-                        <ModalBody>
-                           <webview id="foo" src={country.newsURL}></webview>  
-                           {/* <iframe src={country.newsURL} width="400px" height="400px"></iframe>                        */}
-                        </ModalBody>
-                        <ModalFooter>
-                          <Button color="secondary" onClick={this.toggleModal}>Cancel</Button>
-                        </ModalFooter>
-                      </Modal>
-                  </section>
-                  </li>
-            })
-          }
+                          <Button onClick={()=>this.toggleModal(index)}>Read More</Button>
+                          <Modal isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={this.props.className} style={{maxWidth:'100%', height:'100%'}}>
+                            <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
+                            <ModalBody>
+                              <webview id="foo" src={country.news_url}></webview>  
+                              {/* <iframe src={country.newsURL} width="400px" height="400px"></iframe>                        */}
+                            </ModalBody>
+                            <ModalFooter>
+                              <Button color="secondary" onClick={()=>this.toggleModal(index)}>Cancel</Button>
+                            </ModalFooter>
+                          </Modal>
+                      </section>
+                      </li>
+                })
+              }
         </ul>
           </TabPane>
           <TabPane tabId="2">
@@ -282,7 +340,7 @@ export default class Home extends Component {
                   </select> 
               </section>
               {this.state.news.length > 0 ?
-                  <ul>
+                  <ul className={styles.newsUL}>
                   {
                     this.state.news.map((country, index) => {
                           return <li key={`country_${index}`}>
@@ -293,24 +351,34 @@ export default class Home extends Component {
                                         {country.title}
                                       </p>
                                       <p>
-                                        <span>{country.author}</span> <span className={styles.seperator}>|</span>
-                                        <span>{country.source}</span> <span className={styles.seperator}>|</span>
-                                        <span>{country.createdDate}</span>
+                                        <span>{country.author}</span> 
+                                        {
+                                          country.author ? 
+                                          <span className={styles.seperator}>|</span>
+                                          : null
+                                        }
+                                        <span>{country.source_name}</span>
+                                          {
+                                            country.source ?
+                                            <span className={styles.seperator}>|</span>
+                                            : null
+                                          }
+                                        <span>{country.created_date}</span>
                                       </p>
                                     </div>
                                     <div className={styles.rightImagePanel}>
-                                      <img src={country.imageURL} />
+                                      <img src={country.image_url} />
                                     </div>
                                 </div>
-                                <Button onClick={this.toggleModal}>Read More</Button>
-                                <Modal isOpen={this.state.modal} toggle={this.toggleModal} className={this.props.className}>
-                                  <ModalHeader toggle={this.toggleModal}>Modal title</ModalHeader>
-                                  <ModalBody>
-                                    <webview id="foo" src={country.newsURL}></webview>  
+                                <Button onClick={()=>this.toggleModal(index)}>Read More</Button>
+                                <Modal isOpen={this.state.modal} toggle={()=>this.toggleModal(index)} className={this.props.className}>
+                                  <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
+                                  <ModalBody className={styles.modalBody}>
+                                    <webview id="foo" src={country.news_url}></webview>  
                                     {/* <iframe src={country.newsURL} width="400px" height="400px"></iframe>                        */}
                                   </ModalBody>
                                   <ModalFooter>
-                                    <Button color="secondary" onClick={this.toggleModal}>Cancel</Button>
+                                    <Button color="secondary" onClick={()=>this.toggleModal(index)}>Cancel</Button>
                                   </ModalFooter>
                                 </Modal>
                           </section>
