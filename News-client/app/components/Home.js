@@ -84,6 +84,11 @@ export default class Home extends Component {
     // this.getNews();
   }
 
+  handleOfflineSearch(){
+    let filePath = path.join(__dirname, '../database.db')
+    let sqlite3 = require('sqlite3').verbose();
+  }
+
   handleChange(e) {
     console.log('HandleChange')
     console.log(e.target.value)
@@ -93,6 +98,7 @@ export default class Home extends Component {
         searchKeywords: val,
       }), 
       () => {
+
         this.getNews()
       }
     )
@@ -120,7 +126,7 @@ export default class Home extends Component {
        params['q'] = keywords
     } 
     if (date) {
-        params['startDate'] = date
+        params['from'] = date
     }
     if (sortResult) {
         params['sortBy'] = sortResult
