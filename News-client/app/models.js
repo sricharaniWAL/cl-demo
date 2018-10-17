@@ -17,7 +17,9 @@ const NewsList = sequelize.define("news_list", {
   image_url: Sequelize.TEXT,
   news_url: Sequelize.TEXT,
   created_date: Sequelize.DATEONLY,
-  news_type: Sequelize.TEXT
+  news_type: Sequelize.TEXT,
+  readStatus: Sequelize.INTEGER,
+  news_id : Sequelize.INTEGER
 },{
   timestamps: false,
 });

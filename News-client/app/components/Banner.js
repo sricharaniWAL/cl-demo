@@ -9,7 +9,7 @@ export default class Banner extends Component {
     return (
       <div className={styles.bannerContainer}>
       <header>
-          <img src={logoImg} />
+          <img src={logoImg} width="100px" height="100px" />
           <h3 className={styles.heading}>News Client</h3>
       </header>
         <img src={bannerImg} width="100%" />

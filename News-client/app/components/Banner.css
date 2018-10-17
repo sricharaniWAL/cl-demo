@@ -16,10 +16,6 @@ header {
     background-color: rgba(0,0,0,0.7);
     width: 100%;
 }
-header img {
-    width: 100px;
-    height: 100px;;
-}
 .bannerContainer:after {
     content: "";
     background-color: rgba(0,0,0,0.4);

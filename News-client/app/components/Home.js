@@ -47,11 +47,29 @@ export default class Home extends Component {
     }
   }
 
-  toggleModal(index) {
+  toggleModal(index, news_id) {
+    console.log(news_id)
     this.setState({
       modal: !this.state.modal,
       clickedCountry : index
     });
+    NewsList.findOne({where: {news_id: news_id}})
+    .then(function(d){
+      console.log(d)
+      if(d){
+        d.dataValues.readStatus = 1;
+        // d.dateValues.updateAtt
+        return d.save()
+      } else {
+        console.log('not found');
+      } 
+    })
+    .then((saveddata) => {
+      console.log(saveddata);
+    })
+    .catch(error => {
+      console.log(error)
+    })
   }
 
   handleChangeDate(date) {
@@ -109,7 +127,8 @@ export default class Home extends Component {
 
   // }
 
-  getNews() {
+  async getNews() {
+    let news_data;
 
     let keywords = this.state.searchKeywords
     let date;
@@ -131,6 +150,36 @@ export default class Home extends Component {
     if (sortResult) {
         params['sortBy'] = sortResult
     } 
+
+    if(!navigator.onLine){
+      news_data = await NewsList.findAll({
+        attributes: ['author', 'source_name', 'image_url','title', 'news_url', 'created_date', 'readStatus'],
+        where: {
+          news_type: 'Regular-News',
+        }
+      })
+      let formatted_data = news_data.map((data) => {
+        return data.dataValues
+      })
+      let filterArr
+      if (keywords.length !== 0 && date) {
+          filterArr = formatted_data.filter(element => {
+              return element.title ? ((element.title.includes(keywords)) && (element.created_date === date  ) ? element : null) : null
+          });
+          this.setState({
+            news: filterArr
+          })
+      }
+       else {
+          this.setState ({
+            news: []
+          })
+      }
+      
+    } 
+    
+
+
 
 
     axios.defaults.baseURL = 'https://newsapi.org/v2/everything';
@@ -155,7 +204,7 @@ export default class Home extends Component {
         NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
           if(!d){
             NewsList.create(article).then((createdData) => {
-     
+            console.log('createdData')
             })
           }
         })
@@ -178,7 +227,7 @@ export default class Home extends Component {
     let headlines_data;
     if(!navigator.onLine){
       headlines_data = await NewsList.findAll({
-        attributes: ['author', 'source_name', 'image_url','title', 'news_url', 'created_date'],
+        attributes: ['author', 'source_name', 'image_url','title', 'news_url', 'created_date', 'readStatus'],
         where: {news_type: 'headlines'}
       })
       let formatted_data = headlines_data.map((data) => {
@@ -199,7 +248,7 @@ export default class Home extends Component {
       }
     }).then((res) => {
       
-      let data = res.data.articles.map((desc) => {
+      let data = res.data.articles.map((desc, index) => {
         let article={};
         article.author = desc.author;
         article.source_name = desc.source['name'];
@@ -208,9 +257,11 @@ export default class Home extends Component {
         article.image_url = desc.urlToImage;
         article.news_url = desc.url;
         article.created_date = desc.publishedAt.split("T")[0];
-        article.news_type = "headlines"
+        article.news_type = "headlines";
+        article.news_id = index + 1;
         NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
          if(!d){
+           article.readStatus = 0;
             NewsList.create(article).then((createdData) => {
               console.log(createdData);
             })
@@ -225,7 +276,7 @@ export default class Home extends Component {
       //   })
       // });
       this.setState({
-             headlines: data
+       headlines: data
       })
 
     }).catch((err) => {
@@ -238,11 +289,9 @@ export default class Home extends Component {
     this.setState (
       (state) => ({
         searchKeywords: "",
-        startDate: ""
+        startDate: "",
+        news : []
       }), 
-      () => {
-        this.getNews()
-      }
     )
   }
   componentDidMount(){
@@ -310,7 +359,7 @@ export default class Home extends Component {
                                   <img src={country.image_url} />
                                 </div>
                             </div>
-                          <Button onClick={()=>this.toggleModal(index)}>Read More</Button>
+                          <Button onClick={()=>this.toggleModal(index, country.news_id)}>Read More</Button>
                           <Modal isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={this.props.className} style={{maxWidth:'100%', height:'100%'}}>
                             <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
                             <ModalBody>
