@@ -11,6 +11,7 @@ import classnames from 'classnames';
 import { TabContent, TabPane, Nav, NavItem, NavLink, Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { NewsList } from '../models';
 import Banner from './Banner';
+import readImg from '../images/double-checking.png';
  
 export default class Home extends Component {
   constructor(Props) {
@@ -47,29 +48,24 @@ export default class Home extends Component {
     }
   }
 
-  toggleModal(index, news_id) {
-    console.log(news_id)
+  async toggleModal(index, news_url) {
+    console.log(news_url)
     this.setState({
       modal: !this.state.modal,
       clickedCountry : index
     });
-    NewsList.findOne({where: {news_id: news_id}})
-    .then(function(d){
-      console.log(d)
-      if(d){
-        d.dataValues.readStatus = 1;
-        // d.dateValues.updateAtt
-        return d.save()
-      } else {
-        console.log('not found');
-      } 
-    })
-    .then((saveddata) => {
-      console.log(saveddata);
-    })
-    .catch(error => {
-      console.log(error)
-    })
+    
+    try{
+      if(news_url){
+        const newsList = await NewsList.update(
+          {readStatus: 1}, 
+          {where: {news_url: news_url}}
+        )
+      }
+    } catch(err){
+      console.log('Update error')
+      console.log(err)
+    }
   }
 
   handleChangeDate(date) {
@@ -163,6 +159,7 @@ export default class Home extends Component {
       })
       let filterArr
       if (keywords.length !== 0 && date) {
+        console.log('offline')
           filterArr = formatted_data.filter(element => {
               return element.title ? ((element.title.includes(keywords)) && (element.created_date === date  ) ? element : null) : null
           });
@@ -170,57 +167,53 @@ export default class Home extends Component {
             news: filterArr
           })
       }
-       else {
+       if(keywords.length === 0){
           this.setState ({
             news: []
           })
       }
       
-    } 
-    
+    } else {
 
-
-
-
-    axios.defaults.baseURL = 'https://newsapi.org/v2/everything';
-    axios.defaults.headers.common['Authorization'] = 'e18bb330222541caab90fb31d7ed0547';
-    axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
-    axios({
-      method: "GET",
-      url: "https://newsapi.org/v2/everything",
-      params: params,
-    }).then((res) => {
-      
-      let data = res.data.articles.map((desc) => {
-        let article={};
-        article.author = desc.author;
-        article.source_name = desc.source['name'];
-        article.source_id = desc.source['id'];
-        article.title = desc.title;
-        article.image_url = desc.urlToImage;
-        article.news_url = desc.url;
-        article.created_date = desc.publishedAt.split("T")[0];
-        article.news_type = 'Regular-News'
-        NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
-          if(!d){
-            NewsList.create(article).then((createdData) => {
-            console.log('createdData')
-            })
-          }
+      axios.defaults.baseURL = 'https://newsapi.org/v2/everything';
+      axios.defaults.headers.common['Authorization'] = 'e18bb330222541caab90fb31d7ed0547';
+      axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
+      axios({
+        method: "GET",
+        url: "https://newsapi.org/v2/everything",
+        params: params,
+      }).then((res) => {
+        let data = res.data.articles.map((desc) => {
+          let article={};
+          article.author = desc.author;
+          article.source_name = desc.source['name'];
+          article.source_id = desc.source['id'];
+          article.title = desc.title;
+          article.image_url = desc.urlToImage;
+          article.news_url = desc.url;
+          article.created_date = desc.publishedAt.split("T")[0];
+          article.news_type = 'Regular-News'
+          NewsList.find({where: {source_id: article.source_id, title: article.title }}).then(function(d){
+            if(!d){
+              article.readStatus = 0;
+              NewsList.create(article).then((createdData) => {
+              console.log('createdData')
+              })
+            }
+          })
+          // if(!news_list){
+          //   await NewsList.create(article)
+          // }
+          return article;
         })
-        // if(!news_list){
-        //   await NewsList.create(article)
-        // }
-        return article;
-      })
-
-      this.setState({
-        news: data
-      })
-
-    }).catch((err) => {
-      console.log(err)
-    });
+        this.setState({
+          news: data
+        })
+      }).catch((err) => {
+        console.log(err)
+      });
+    }
+    
   }
 
   async getHeadlines() {
@@ -337,6 +330,10 @@ export default class Home extends Component {
                                 <div className={styles.leftNewsPanel}>
                                   <p>
                                     {country.title}
+                                    {country.readStatus ? 
+                                    <img src={readImg} className={styles.readImage} />
+                                    : null
+                                    }
                                   </p>
                                   <p>
                                     <span>{country.author}</span> 
@@ -347,11 +344,9 @@ export default class Home extends Component {
                                     }
 
                                     <span>{country.source_name}</span> 
-                                    {
-                                     country.source ?
+                                   
                                     <span className={styles.seperator}>|</span>
-                                     : null
-                                    }
+                                    
                                     <span>{country.created_date}</span>
                                   </p>
                                 </div>
@@ -359,12 +354,17 @@ export default class Home extends Component {
                                   <img src={country.image_url} />
                                 </div>
                             </div>
-                          <Button onClick={()=>this.toggleModal(index, country.news_id)}>Read More</Button>
-                          <Modal isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={this.props.className} style={{maxWidth:'100%', height:'100%'}}>
+                            {
+                              navigator.onLine ? 
+                              <Button onClick={()=>this.toggleModal(index, country.news_url)}>Read More</Button> :
+                              null
+                            }
+                          <Modal size="lg" isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={styles.customModal}>
                             <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
                             <ModalBody>
-                              <webview id="foo" src={country.news_url}></webview>  
-                              {/* <iframe src={country.newsURL} width="400px" height="400px"></iframe>                        */}
+                            <div style={{width:100 + '%', height:100 + '%'}}>
+                                <webview id="foo" src={country.news_url} autosize="on" style={{minWidth:100 + '%', minHeight:90 + 'vh'}}></webview>
+                            </div>
                             </ModalBody>
                             <ModalFooter>
                               <Button color="secondary" onClick={()=>this.toggleModal(index)}>Cancel</Button>
@@ -388,11 +388,15 @@ export default class Home extends Component {
                   selected={this.state.startDate}
                   onChange={this.handleChangeDate}
                 />
+                {
+                  navigator.onLine ? 
                   <select value={this.state.result} onChange={this.handleSelectChange}>
                     <option value="relevancy">Most relevant</option>
                     <option value="publishedAt">Most recent</option>
                     <option value="popularity">Most popular</option> 
-                  </select> 
+                  </select> :
+                  null
+                }
               </section>
               {this.state.news.length > 0 ?
                   <ul className={styles.newsUL}>
@@ -413,11 +417,7 @@ export default class Home extends Component {
                                           : null
                                         }
                                         <span>{country.source_name}</span>
-                                          {
-                                            country.source ?
-                                            <span className={styles.seperator}>|</span>
-                                            : null
-                                          }
+                                        <span className={styles.seperator}>|</span>
                                         <span>{country.created_date}</span>
                                       </p>
                                     </div>
@@ -425,17 +425,23 @@ export default class Home extends Component {
                                       <img src={country.image_url} />
                                     </div>
                                 </div>
-                                <Button onClick={()=>this.toggleModal(index)}>Read More</Button>
-                                <Modal isOpen={this.state.modal} toggle={()=>this.toggleModal(index)} className={this.props.className}>
+                                {
+                                  navigator.onLine ? 
+                                  <Button onClick={()=>this.toggleModal(index, country.news_url)}>Read More</Button> :
+                                  null
+                                }
+                               
+                                <Modal size="lg" isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={styles.customModal}>
                                   <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
-                                  <ModalBody className={styles.modalBody}>
-                                    <webview id="foo" src={country.news_url}></webview>  
-                                    {/* <iframe src={country.newsURL} width="400px" height="400px"></iframe>                        */}
+                                  <ModalBody>
+                                  <div style={{width:100 + '%', height:100 + '%'}}>
+                                      <webview id="foo" src={country.news_url} autosize="on" style={{minWidth:100 + '%', minHeight:90 + 'vh'}}></webview>
+                                  </div>
                                   </ModalBody>
                                   <ModalFooter>
                                     <Button color="secondary" onClick={()=>this.toggleModal(index)}>Cancel</Button>
                                   </ModalFooter>
-                                </Modal>
+                              </Modal>
                           </section>
                           </li>
                     })

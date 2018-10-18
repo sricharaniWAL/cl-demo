@@ -3,11 +3,15 @@ const sqlite3 = require('sqlite3')
 const path = require('path')
 const config = require("./config.json")
 
-const sequelize = new Sequelize("main", null, null,  {
-  dialect: 'sqlite',
-  storage: path.join(__dirname, '/database.db'),
-  operatorsAliases: false
-});
+if(!window.sequelizeConnection){
+  window.sequelizeConnection = new Sequelize("main", null, null,  {
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '/database.db'),
+    operatorsAliases: false
+  });
+}
+
+let sequelize = window.sequelizeConnection
 
 const NewsList = sequelize.define("news_list", {
   author: Sequelize.TEXT,
