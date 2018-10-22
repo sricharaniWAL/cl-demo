@@ -4,8 +4,8 @@
   font-size: 1rem;
 }
 body {
-  background-image: linear-gradient(to right, #868f96 0%, #596164 100%);
-  background: -webkit-linear-gradient(to right, #868f96 0%, #596164 100%);
+  background-image: linear-gradient(to right, #5a5e61 0%, #44778a 100%);
+  background: -webkit-linear-gradient(to right, #5a5e61 0%, #44778a 100%);
   font-size: 1rem;
 }
 body p, body p span {
@@ -48,6 +48,7 @@ ul {
   padding: 20px;
   border-bottom: 1px solid #ccc;
 }
+
 ul li:last-child .newsWrapper {
   border: none;
 }

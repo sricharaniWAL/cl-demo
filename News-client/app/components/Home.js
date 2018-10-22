@@ -354,11 +354,9 @@ export default class Home extends Component {
                                   <img src={country.image_url} />
                                 </div>
                             </div>
-                            {
-                              navigator.onLine ? 
-                              <Button onClick={()=>this.toggleModal(index, country.news_url)}>Read More</Button> :
-                              null
-                            }
+                            
+                              <Button onClick={()=>this.toggleModal(index, country.news_url)} disabled={!navigator.onLine} {...!navigator.onLine && {'title' : 'you are offline'}}> Read More</Button> 
+                              
                           <Modal size="lg" isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={styles.customModal}>
                             <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
                             <ModalBody>
@@ -388,15 +386,11 @@ export default class Home extends Component {
                   selected={this.state.startDate}
                   onChange={this.handleChangeDate}
                 />
-                {
-                  navigator.onLine ? 
-                  <select value={this.state.result} onChange={this.handleSelectChange}>
+                  <select value={this.state.result} onChange={this.handleSelectChange} disabled={!navigator.onLine} {...!navigator.onLine && {'title' : 'you are offline'}}>
                     <option value="relevancy">Most relevant</option>
                     <option value="publishedAt">Most recent</option>
                     <option value="popularity">Most popular</option> 
-                  </select> :
-                  null
-                }
+                  </select> 
               </section>
               {this.state.news.length > 0 ?
                   <ul className={styles.newsUL}>
@@ -425,11 +419,7 @@ export default class Home extends Component {
                                       <img src={country.image_url} />
                                     </div>
                                 </div>
-                                {
-                                  navigator.onLine ? 
-                                  <Button onClick={()=>this.toggleModal(index, country.news_url)}>Read More</Button> :
-                                  null
-                                }
+                                <Button onClick={()=>this.toggleModal(index, country.news_url)} disabled={!navigator.onLine} {...!navigator.onLine && {'title' : 'you are offline'}}>Read More</Button> 
                                
                                 <Modal size="lg" isOpen={this.state.modal && this.state.clickedCountry == index} toggle={()=>this.toggleModal(index)} className={styles.customModal}>
                                   <ModalHeader toggle={()=>this.toggleModal(index)}></ModalHeader>
